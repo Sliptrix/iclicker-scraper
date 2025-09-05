@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ course.name }} - iClicker Scraper</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .activity-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 1rem;
+        }
+        .activity-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+        .question-thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border 0.3s ease;
+        }
+        .question-thumbnail:hover {
+            border-color: #007bff;
+        }
+        .course-header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        .stats-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            color: #333;
+        }
+        .image-modal {
+            max-width: 90vw;
+            max-height: 90vh;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="row">
+            <div class="col-12">
+                <nav class="navbar navbar-dark bg-dark">
+                    <div class="container-fluid">
+                        <a href="/" class="navbar-brand">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Back to Dashboard
+                        </a>
+                        <span class="navbar-text">
+                            {{ course.name }}
+                        </span>
+                    </div>
+                </nav>
+            </div>
+        </div>
+
+        <div class="container mt-4">
+            <!-- Course Header -->
+            <div class="course-header">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="mb-3">
+                            <i class="fas fa-graduation-cap me-3"></i>
+                            {{ course.name }}
+                        </h1>
+                        <p class="mb-0 h5">
+                            Complete question extraction from {{ course.activities }} classes
+                        </p>
+                        <small class="text-light">
+                            Extracted on {{ course.timestamp[:8] }} at {{ course.timestamp[9:13] }}:{{ course.timestamp[13:15] }}
+                        </small>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="row">
+                            <div class="col-4">
+                                <div class="stats-card">
+                                    <div class="h3 text-success mb-0">{{ course.activities }}</div>
+                                    <small>Classes</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="stats-card">
+                                    <div class="h3 text-info mb-0">{{ course.questions }}</div>
+                                    <small>Questions</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="stats-card">
+                                    <div class="h3 text-warning mb-0">{{ course.images }}</div>
+                                    <small>Images</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activities -->
+            <h3 class="mb-4">
+                <i class="fas fa-list me-2"></i>
+                Class Activities
+            </h3>
+
+            {% for activity in course.data.activities %}
+            <div class="activity-card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <h5 class="text-primary mb-1">{{ activity.activity_name }}</h5>
+                            <p class="text-muted mb-2">{{ activity.questions_found }} questions</p>
+                            <span class="badge bg-success">{{ activity.images_downloaded }} images</span>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="d-flex flex-wrap">
+                                {% for question in activity.questions[:12] %}
+                                {% if question.local_image_path %}
+                                <img src="/{{ question.local_image_path }}" 
+                                     class="question-thumbnail"
+                                     alt="Question {{ question.question_number }}"
+                                     title="Question {{ question.question_number }}"
+                                     onclick="showImageModal(this.src, 'Question {{ question.question_number }} - {{ activity.activity_name }}')">
+                                {% endif %}
+                                {% endfor %}
+                                {% if activity.questions|length > 12 %}
+                                <div class="question-thumbnail d-flex align-items-center justify-content-center bg-light text-muted">
+                                    <small>+{{ activity.questions|length - 12 }}</small>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div class="modal fade" id="imageModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imageModalTitle">Question Image</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="modalImage" src="" class="image-modal" alt="Question Image">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a id="downloadImageBtn" href="" download class="btn btn-primary">
+                        <i class="fas fa-download me-1"></i> Download Image
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function showImageModal(imageSrc, title) {
+            const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+            const modalImage = document.getElementById('modalImage');
+            const modalTitle = document.getElementById('imageModalTitle');
+            const downloadBtn = document.getElementById('downloadImageBtn');
+            
+            modalImage.src = imageSrc;
+            modalTitle.textContent = title;
+            downloadBtn.href = imageSrc;
+            
+            modal.show();
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('imageModal'));
+                if (modal) modal.hide();
+            }
+        });
+    </script>
+</body>
+</html>

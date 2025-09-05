@@ -59,49 +59,100 @@ def extract_activity_ids_from_page(driver) -> List[str]:
     """
     Extract all activity IDs from the course class-history page.
     
+    Since iClicker uses JavaScript session links, we need to click on each 
+    poll link and extract the activity ID from the resulting URL.
+    
     Args:
         driver: Selenium WebDriver instance
         
     Returns:
         List of unique activity IDs found on the page
     """
-    activity_ids = []
-    seen_ids = set()
+    activity_data = []
     
     try:
-        # Look for links that contain activity IDs
-        # iClicker activity links look like: /activity/ACTIVITY_ID/questions
-        links = driver.find_elements(By.TAG_NAME, "a")
+        # Instead of caching elements, we'll find them fresh each iteration
+        processed_activities = set()
+        max_attempts = 20  # Prevent infinite loop
         
-        for link in links:
-            href = link.get_attribute('href') or ''
+        for attempt in range(max_attempts):
+            # Find session links fresh each time
+            session_links = driver.find_elements(By.CSS_SELECTOR, "a.session-link")
             
-            # Match activity URLs
-            activity_pattern = r'/activity/([^/]+)/questions'
-            match = re.search(activity_pattern, href)
+            if attempt == 0:
+                print(f"   Found {len(session_links)} session links")
             
-            if match:
-                activity_id = match.group(1)
-                if activity_id not in seen_ids:
-                    activity_ids.append(activity_id)
-                    seen_ids.add(activity_id)
+            # Find an unprocessed poll link
+            found_unprocessed = False
+            
+            for link in session_links:
+                try:
+                    link_text = link.text.strip()
+                    if 'Poll' in link_text and 'Class' in link_text:
+                        # Create a unique identifier for this activity
+                        activity_identifier = link_text.split('\n')[0].strip()
+                        
+                        if activity_identifier in processed_activities:
+                            continue  # Skip already processed
+                        
+                        found_unprocessed = True
+                        print(f"   Processing: {link_text[:30]}...")
+                        
+                        # Click the session link
+                        driver.execute_script("arguments[0].click();", link)
+                        time.sleep(3)  # Wait for navigation
+                        
+                        # Check if we're now on an activity page
+                        current_url = driver.current_url
+                        print(f"      Current URL: {current_url}")
+                        
+                        # Extract activity ID from URL
+                        activity_pattern = r'/activity/([^/]+)(?:/|$)'
+                        match = re.search(activity_pattern, current_url)
+                        
+                        if match:
+                            activity_id = match.group(1)
+                            activity_info = {
+                                'activity_id': activity_id,
+                                'activity_name': activity_identifier,
+                                'activity_url': current_url
+                            }
+                            activity_data.append(activity_info)
+                            processed_activities.add(activity_identifier)
+                            print(f"      ✅ Found activity: {activity_id}")
+                        else:
+                            print(f"      ⚠️ No activity ID found in URL")
+                        
+                        # Go back to course page for next iteration
+                        driver.back()
+                        time.sleep(3)  # Wait for page to load
+                        break  # Break inner loop to start fresh
+                        
+                except Exception as e:
+                    print(f"      ❌ Error processing session link: {e}")
+                    # Try to get back to course page
+                    try:
+                        driver.back()
+                        time.sleep(2)
+                    except:
+                        pass
+                    continue
+            
+            if not found_unprocessed:
+                print(f"   ✅ Processed all available session links")
+                break
         
-        # Also check for any data attributes or other patterns that might contain activity IDs
-        try:
-            elements = driver.find_elements(By.CSS_SELECTOR, "[data-activity-id]")
-            for element in elements:
-                activity_id = element.get_attribute('data-activity-id')
-                if activity_id and activity_id not in seen_ids:
-                    activity_ids.append(activity_id)
-                    seen_ids.add(activity_id)
-        except:
-            # If CSS selector fails, continue with what we have
-            pass
+        # Return just the activity IDs for compatibility with existing code
+        activity_ids = [item['activity_id'] for item in activity_data]
+        
+        # Store the full activity data for later use
+        driver.activity_data = activity_data
+        
+        return activity_ids
         
     except Exception as e:
         print(f"   ⚠️ Error extracting activity IDs: {e}")
-    
-    return activity_ids
+        return []
 
 
 def extract_questions_from_activity(driver, activity_id: str, activity_name: str = None) -> List[Dict]:
@@ -415,8 +466,13 @@ def extract_course_activities(course_url: str, username: str = None, password: s
             }
         
         # Extract questions from each activity
+        activity_info_list = getattr(driver, 'activity_data', [])
+        
         for i, activity_id in enumerate(activity_ids, 1):
-            activity_name = f"Activity {i}"
+            # Find the matching activity info
+            activity_info = next((info for info in activity_info_list if info['activity_id'] == activity_id), None)
+            activity_name = activity_info['activity_name'] if activity_info else f"Activity {i}"
+            
             print(f"\\n📝 Processing {activity_name}: {activity_id}")
             
             try:
@@ -504,12 +560,19 @@ def extract_course_activities(course_url: str, username: str = None, password: s
 
 
 if __name__ == "__main__":
-    # Example usage with the anatomy course
-    anatomy_course_url = "https://student.iclicker.com/#/course/a6f87d72-bca6-49fe-9497-a1728cf38733/class-history"
+    import sys
     
-    # Debug mode - run with visible browser
+    # Allow course URL as command line argument
+    if len(sys.argv) > 1:
+        course_url = sys.argv[1]
+    else:
+        # Default to the new course URL
+        course_url = "https://student.iclicker.com/#/course/67d4f5a8-cbd4-41e0-870c-aa09b361da0c/class-history"
+    
+    print(f"🎯 Extracting from course: {course_url}")
+    
     result = extract_course_activities(
-        course_url=anatomy_course_url,
+        course_url=course_url,
         output_dir="questions",
         headless=False  # Show browser for debugging
     )

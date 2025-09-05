@@ -76,3 +76,11 @@ geckodriver
 questions/*.env
 temp/
 screenshots/
+
+# Sample/test data (keep structure but not actual extractions)
+questions/*.json
+images/*/
+
+# Flask session files
+flask_session/
+instance/

@@ -1,22 +1,27 @@
-# iClicker Question Scraper
+# iClicker Course Extractor
 
-A Python tool to automatically scrape questions and answers from iClicker student activities using web automation.
+A comprehensive Python tool to automatically extract questions and images from entire iClicker courses using web automation, featuring a professional web dashboard for easy management.
 
 ## Features
 
-- 🔐 Secure credential handling via environment variables
-- 📋 Extracts questions with correct answers
-- 💾 Saves results in JSON format with timestamps  
-- 🖥️ Both headless and visible browser modes
-- 🔄 Designed for regular/automated usage
-- ✅ Comprehensive test suite
-- 🛠️ Easy-to-use CLI interface
+- 🎯 **Complete Course Extraction**: Extract all activities and questions from an entire iClicker course
+- 🌐 **Web Dashboard**: Professional Flask-based web interface for easy course management
+- 📋 **Question & Image Extraction**: Download questions with associated images automatically
+- 🔄 **Real-time Progress**: Live progress tracking during extractions via WebSocket
+- 📁 **Smart Organization**: Automatic file organization with consistent naming schemes
+- 💾 **JSON Export**: Structured data storage with complete extraction metadata
+- 🔐 **Secure Credentials**: Environment variable-based credential management
+- 📱 **Responsive Interface**: Mobile-friendly Bootstrap-based dashboard
 
 ## Quick Start
 
 ### 1. Setup Environment
 
 ```bash
+# Clone the repository
+git clone https://github.com/yourusername/iclicker-course-extractor.git
+cd iclicker-course-extractor
+
 # Create virtual environment
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
@@ -27,151 +32,156 @@ pip install -r requirements.txt
 
 ### 2. Configure Credentials
 
-**Option A: Environment Variables (Recommended)**
+Create a `.env` file in the `questions/` directory:
 ```bash
-export ICLICKER_USERNAME="your_username@email.com"
-export ICLICKER_PASSWORD="your_password"
+ICLICKER_USERNAME=your_username@email.com
+ICLICKER_PASSWORD=your_password
 ```
 
-**Option B: Use the setup command**
-```bash
-python iclicker_cli.py setup-env --username your_username@email.com
-```
-
-### 3. Scrape Questions
+### 3. Start the Dashboard
 
 ```bash
-# Basic usage - scrape questions from an activity
-python iclicker_cli.py scrape f7dcba1f-1231-4d91-906c-6e3acd9b660b
+# Navigate to dashboard directory
+cd dashboard
 
-# With custom output file
-python iclicker_cli.py scrape f7dcba1f-1231-4d91-906c-6e3acd9b660b -o my_questions.json
-
-# Show browser window (for debugging)
-python iclicker_cli.py scrape f7dcba1f-1231-4d91-906c-6e3acd9b660b --show-browser
-
-# Verbose output with question details
-python iclicker_cli.py scrape f7dcba1f-1231-4d91-906c-6e3acd9b660b --verbose
+# Start the web dashboard
+python app.py
 ```
 
-## CLI Commands
+Open your browser and go to `http://localhost:5001` to access the dashboard.
 
-### `scrape` - Extract Questions
+### 4. Extract Courses
+
+**Option A: Use the Web Dashboard (Recommended)**
+1. Open the dashboard at `http://localhost:5001`
+2. Paste your course URL in the extraction form
+3. Monitor real-time progress
+4. Browse extracted courses and questions
+
+**Option B: Command Line**
 ```bash
-python iclicker_cli.py scrape ACTIVITY_ID [options]
+# Extract entire course
+python extract_course_activities.py https://student.iclicker.com/#/course/COURSE_ID/class-history
+
+# Organize extracted files
+python rename_course_files.py
 ```
 
-**Options:**
-- `-o, --output` - Custom output file path
-- `--username` - iClicker username (overrides env var)
-- `--password` - iClicker password (overrides env var)
-- `--show-browser` - Show browser window instead of headless mode
-- `--timeout` - Timeout in seconds (default: 30)
-- `--create-latest-link` - Create symlink to latest file
-- `-v, --verbose` - Show detailed output
+## Dashboard Features
 
-### `list` - View Recent Files
-```bash
-python iclicker_cli.py list [--limit N]
+### 🏠 **Course Management**
+- View all extracted courses in a clean card-based interface
+- See extraction metadata (dates, question counts, activity counts)
+- Quick access to course details and questions
+
+### ⚡ **Real-time Extraction**
+- Paste any iClicker course URL to start extraction
+- Live progress updates via WebSocket
+- Automatic course addition to dashboard upon completion
+
+### 📊 **Course Details**
+- Browse all activities/classes within a course
+- View question thumbnails in an organized grid
+- Full-size image modal viewer
+- Download and export capabilities
+
+## How to Find Course URL
+
+The course URL is in your iClicker dashboard. Look for:
 ```
-
-Shows recent question files with timestamps and question counts.
-
-### `setup-env` - Configure Credentials
-```bash
-python iclicker_cli.py setup-env [--username USER] [--force]
-```
-
-Creates a `.env` file with your credentials securely stored.
-
-## How to Find Activity ID
-
-The activity ID is in the iClicker URL. For example:
-```
-https://student.iclicker.com/#/activity/f7dcba1f-1231-4d91-906c-6e3acd9b660b/questions
+https://student.iclicker.com/#/course/646a06a0-645e-4632-af88-6483178c08c5/class-history
                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                                      This is your activity ID
+                                      This is your course ID
 ```
+
+The full URL including `/class-history` is what you need for extraction.
 
 ## Output Format
 
-Questions are saved as JSON with this structure:
+Course extractions are saved with this structure:
 
 ```json
-[
-  {
-    "id": "q1",
-    "question_text": "What is 2+2?",
-    "options": ["3", "4", "5", "6"],
-    "correct_answer": "4",
-    "question_type": "multiple_choice",
-    "extraction_method": "web_scraping"
-  }
-]
+{
+  "course_id": "646a06a0-645e-4632-af88-6483178c08c5",
+  "course_url": "https://student.iclicker.com/#/course/.../class-history",
+  "extraction_timestamp": "20250905_151628",
+  "total_activities_processed": 9,
+  "total_questions_extracted": 122,
+  "total_images_downloaded": 122,
+  "extraction_method": "Course-level activity discovery",
+  "activities": [
+    {
+      "activity_id": "82d2883e-dd1f-4779-8199-d3ef1693c449",
+      "activity_name": "Class 5 - Poll",
+      "questions_found": 34,
+      "images_downloaded": 34,
+      "questions": [
+        {
+          "question_number": 1,
+          "question_text": "Question 1",
+          "local_image_path": "images/Course_Name/Class_05_Poll_82d2883e/question_01.png",
+          "image_size_bytes": 140114
+        }
+      ]
+    }
+  ]
+}
 ```
 
-## Regular Usage
+## Project Structure
 
-For regular usage, set up a script or cron job:
-
-```bash
-#!/bin/bash
-# daily_questions.sh
-
-cd /path/to/iclicker-scraper
-source venv/bin/activate
-
-# Your activity ID
-ACTIVITY_ID="f7dcba1f-1231-4d91-906c-6e3acd9b660b"
-
-python iclicker_cli.py scrape "$ACTIVITY_ID" --create-latest-link --verbose
 ```
-
-## Development
-
-### Running Tests
-```bash
-source venv/bin/activate
-python -m pytest test_iclicker_client.py -v
-```
-
-### Project Structure
-```
-iclicker-scraper/
-├── iclicker_scraper.py      # Main scraper class
-├── iclicker_cli.py          # CLI interface
-├── test_iclicker_client.py  # Test suite
-├── requirements.txt         # Dependencies
-├── README.md               # This file
-└── questions/              # Output directory (created automatically)
+iclicker-course-extractor/
+├── dashboard/                    # Web dashboard
+│   ├── app.py                   # Flask application
+│   └── templates/               # HTML templates
+├── extract_course_activities.py # Main extraction script
+├── rename_course_files.py       # File organization utility
+├── requirements.txt             # Python dependencies
+├── questions/                   # Extracted course data (JSON)
+├── images/                      # Downloaded question images
+└── README.md                   # This file
 ```
 
 ## Troubleshooting
 
+### Dashboard Won't Start
+- Ensure you're in the `dashboard/` directory: `cd dashboard`
+- Check that Flask and Flask-SocketIO are installed: `pip install -r ../requirements.txt`
+- Try a different port if 5001 is in use: modify `app.py` to use a different port
+
 ### Chrome Driver Issues
-If you get Chrome driver errors:
 ```bash
 # Update Chrome driver
 pip install --upgrade webdriver-manager
 ```
 
 ### Authentication Issues
-- Verify your credentials are correct
+- Verify credentials in `questions/.env` file
+- Ensure you have access to the course
 - Check if iClicker requires 2FA (not currently supported)
-- Try running with `--show-browser` to see what's happening
+- Try running extraction with `--show-browser` flag for debugging
 
-### No Questions Found
-- Ensure the activity ID is correct
-- Check if you have access to the activity
-- Try running with `--show-browser` and `--verbose` for debugging
+### Extraction Fails
+- Verify the course URL format includes `/class-history`
+- Check that you're enrolled in the course
+- Ensure stable internet connection
+- Try extracting during off-peak hours
 
 ## Security Notes
 
-- Credentials are stored securely in environment variables or `.env` files
-- The `.env` file is created with restricted permissions (600)
-- Never commit credentials to version control
-- Use different credentials for different environments
+- 🔒 Credentials stored securely in `.env` files with restricted permissions
+- ⚠️ Never commit credential files to version control
+- 🌍 Only use this tool for courses you have legitimate access to
+- 📊 Consider the impact on iClicker's servers - avoid excessive concurrent extractions
+
+## Contributing
+
+Contributions are welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request with detailed description
 
 ## License
 
-This tool is for educational purposes. Please respect iClicker's terms of service and only use this tool for activities you have legitimate access to.
+This tool is for educational purposes. Please respect iClicker's terms of service and only use this tool for courses you have legitimate access to.
